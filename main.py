@@ -1,6 +1,7 @@
 from handTracker import *
 import cv2
 import mediapipe as mp
+import numpy as np
 
 
 #initilize the habe detector
@@ -42,9 +43,12 @@ while True:
             #yellow
             if 700<positions[8][0]<800 and 0<positions[8][1]<100:
                 color = (0,255,255)
-            #yellow
+            #Eraser
             if 800<positions[8][0]<900 and 0<positions[8][1]<100:
                 color = (0,0,0)
+            #Clear 
+            if 900<positions[8][0]<1000 and 0<positions[8][1]<100:
+                canvas = np.zeros((720,1280,3), np.uint8)
             #print("both index and middle fingers are up")
         elif upFingers[1] and not upFingers[2]:
             #print('index finger is up')
@@ -53,17 +57,26 @@ while True:
             if px == 0 and py == 0:
                 px, py = positions[8]
             if color == (0,0,0):
-                cv2.line(canvas, (px,py), positions[8], color,eraserSize)
+                cv2.line(canvas, (px,py), positions[8], color, eraserSize)
             else:
                 cv2.line(canvas, (px,py), positions[8], color,brushSize)
             px, py = positions[8]
-    #pen colors
+
+    #pen colors' boxes
+    #blue
     cv2.rectangle(frame, (400,0), (500, 100), (255,0,0), -1)
+    #green
     cv2.rectangle(frame, (500,0), (600, 100), (0,255,0), -1)
+    #red
     cv2.rectangle(frame, (600,0), (700, 100), (0,0,255), -1)
+    #yellow
     cv2.rectangle(frame, (700,0), (800, 100), (0,255,255), -1)
+    #Ereaser
     cv2.rectangle(frame, (800,0), (900, 100), (0,0,0), -1)
     cv2.putText(frame, "Ereaser", (820,50), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
+    #Clear All
+    cv2.rectangle(frame, (900,0), (1000, 100), (100,100,100), -1)
+    cv2.putText(frame, "Clear", (920,50), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
     
     #moving the draw to the main image
     canvasGray = cv2.cvtColor(canvas, cv2.COLOR_BGR2GRAY)
