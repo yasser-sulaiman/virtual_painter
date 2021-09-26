@@ -38,7 +38,7 @@ class HandTracker():
         return lmList
     
     def getUpFingers(self, img):
-        pos = self.getPostion(img)
+        pos = self.getPostion(img, draw=False)
         self.upfingers = []
         if pos:
             #thumb
