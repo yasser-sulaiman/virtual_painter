@@ -2,6 +2,37 @@ from handTracker import *
 import cv2
 import mediapipe as mp
 import numpy as np
+import random
+
+class ColorRect():
+    def __init__(self, x, y, w, h, color, text=''):
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.color = color
+        self.text=text
+        
+    
+    def drawRect(self, img, text_color=(255,255,255), alpha=0.5, fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.8, thickness=2):
+        #draw the box
+        bg_rec = img[self.y : self.y + self.h, self.x : self.x + self.w]
+        white_rect = np.ones(bg_rec.shape, dtype=np.uint8)
+        white_rect[:] = self.color
+        res = cv2.addWeighted(bg_rec, alpha, white_rect, 1-alpha, 1.0)
+        
+        # Putting the image back to its position
+        img[self.y : self.y + self.h, self.x : self.x + self.w] = res
+
+        #put the letter
+        tetx_size = cv2.getTextSize(self.text, fontFace, fontScale, thickness)
+        text_pos = (int(self.x + self.w/2 - tetx_size[0][0]/2), int(self.y + self.h/2 + tetx_size[0][1]/2))
+        cv2.putText(img, self.text,text_pos , fontFace, fontScale,text_color, thickness)
+
+    def isOver(self,x,y):
+        if (self.x + self.w > x > self.x) and (self.y + self.h> y >self.y):
+            return True
+        return False
 
 
 #initilize the habe detector
@@ -17,11 +48,42 @@ canvas = np.zeros((720,1280,3), np.uint8)
 
 # define a previous point to be used with drawing a line
 px,py = 0,0
+#initial brush color
 color = (255,0,0)
 #####
 brushSize = 5
 eraserSize = 20
 ####
+########### creating colors ########
+colors = []
+#random color
+b = int(random.random()*255)-1
+g = int(random.random()*255)
+r = int(random.random()*255)
+print(b,g,r)
+colors.append(ColorRect(300,0,100,100, (b,g,r)))
+#red
+colors.append(ColorRect(400,0,100,100, (0,0,255)))
+#blue
+colors.append(ColorRect(500,0,100,100, (255,0,0)))
+#green
+colors.append(ColorRect(600,0,100,100, (0,255,0)))
+#yellow
+colors.append(ColorRect(700,0,100,100, (0,255,255)))
+#erase (black)
+colors.append(ColorRect(800,0,100,100, (0,0,0), "Eraser"))
+
+#clear
+clear = ColorRect(900,0,100,100, (100,100,100), "Clear")
+
+########## pen sizes #######
+pens = []
+for i, penSize in enumerate(range(5,25,5)):
+    pens.append(ColorRect(1100,50+100*i,100,100, (50,50,50), str(penSize)))
+
+penLabel = ColorRect(1100, 0, 100, 50, color, 'Pen')
+
+
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -31,37 +93,21 @@ while True:
     positions = detector.getPostion(frame, draw=False)
     upFingers = detector.getUpFingers(frame)
     if upFingers:
+        x, y = positions[8][0], positions[8][1]
         if upFingers[1] and upFingers[2]:
             px, py = 0, 0
             ####### chose a color for drawing #######
-            #blue
-            if 400<positions[8][0]<500 and 0<positions[8][1]<100:
-                color = (255,0,0)
-            #green
-            elif 500<positions[8][0]<600 and 0<positions[8][1]<100:
-                color = (0,255,0)
-            #red
-            elif 600<positions[8][0]<700 and 0<positions[8][1]<100:
-                color = (0,0,255)
-            #yellow
-            elif 700<positions[8][0]<800 and 0<positions[8][1]<100:
-                color = (0,255,255)
-            #Eraser
-            elif 800<positions[8][0]<900 and 0<positions[8][1]<100:
-                color = (0,0,0)
+            for cb in colors:
+                if cb.isOver(x, y):
+                    color = cb.color
             #Clear 
-            elif 900<positions[8][0]<1000 and 0<positions[8][1]<100:
+            if clear.isOver(x, y):
                 canvas = np.zeros((720,1280,3), np.uint8)
             
             ##### pen sizes ######
-            elif 1100<positions[8][0]<1200 and 50<positions[8][1]<150:
-                brushSize = 5
-            elif 1100<positions[8][0]<1200 and 150<positions[8][1]<250:
-                brushSize = 10
-            elif 1100<positions[8][0]<1200 and 250<positions[8][1]<350:
-                brushSize = 15
-            elif 1100<positions[8][0]<1200 and 350<positions[8][1]<450:
-                brushSize = 20
+            for pen in pens:
+                if pen.isOver(x, y):
+                    brushSize = int(pen.text)
             
 
         elif upFingers[1] and not upFingers[2]:
@@ -85,42 +131,19 @@ while True:
 
 
     ########## pen colors' boxes #########
-    #blue
-    cv2.rectangle(frame, (400,0), (500, 100), (255,0,0), -1)
-    #green
-    cv2.rectangle(frame, (500,0), (600, 100), (0,255,0), -1)
-    #red
-    cv2.rectangle(frame, (600,0), (700, 100), (0,0,255), -1)
-    #yellow
-    cv2.rectangle(frame, (700,0), (800, 100), (0,255,255), -1)
-    #Ereaser
-    cv2.rectangle(frame, (800,0), (900, 100), (0,0,0), -1)
-    cv2.putText(frame, "Ereaser", (820,50), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
-    #Clear All
-    cv2.rectangle(frame, (900,0), (1000, 100), (100,100,100), -1)
-    cv2.putText(frame, "Clear", (920,50), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
+    for c in colors:
+        c.drawRect(frame)
+        cv2.rectangle(frame, (c.x, c.y), (c.x +c.w, c.y+c.h), (255,255,255), 2)
 
+    clear.drawRect(frame)
+    cv2.rectangle(frame, (clear.x, clear.y), (clear.x +clear.w, clear.y+clear.h), (255,255,255), 2)
     ########## brush size boxes ######
-    #pen
-    cv2.rectangle(frame, (1100,0), (1200, 50), color, -1)
-    cv2.rectangle(frame, (1100,0), (1200, 50), (255,255,255), 2)
-    cv2.putText(frame, "Pen", (1120,25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
-    #5
-    cv2.rectangle(frame, (1100,50), (1200, 150), (150,150,150), -1)
-    cv2.rectangle(frame, (1100,50), (1200, 150), (255,255,255), 2)
-    cv2.putText(frame, "5", (1120,100), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
-    #10
-    cv2.rectangle(frame, (1100,150), (1200, 250), (150,150,150), -1)
-    cv2.rectangle(frame, (1100,150), (1200, 250), (255,255,255), 2)
-    cv2.putText(frame, "10", (1120,200), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
-    #15
-    cv2.rectangle(frame, (1100,250), (1200, 350), (150,150,150), -1)
-    cv2.rectangle(frame, (1100,250), (1200, 350), (255,255,255), 2)
-    cv2.putText(frame, "15", (1120,300), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
-    #20
-    cv2.rectangle(frame, (1100,350), (1200, 450), (150,150,150), -1)
-    cv2.rectangle(frame, (1100,350), (1200, 450), (255,255,255), 2)
-    cv2.putText(frame, "20", (1120,400), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
+    penLabel.color = color
+    penLabel.drawRect(frame)
+    cv2.rectangle(frame, (penLabel.x, penLabel.y), (penLabel.x +penLabel.w, penLabel.y+penLabel.h), (255,255,255), 2)
+    for pen in pens:
+        pen.drawRect(frame)
+        cv2.rectangle(frame, (pen.x, pen.y), (pen.x +pen.w, pen.y+pen.h), (255,255,255), 2)
 
 
     cv2.imshow('video', frame)
