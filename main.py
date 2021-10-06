@@ -88,7 +88,9 @@ while True:
     ret, frame = cap.read()
     if not ret:
         break
+    frame = cv2.resize(frame, (1280, 720))
     frame = cv2.flip(frame, 1)
+
     detector.findHands(frame)
     positions = detector.getPostion(frame, draw=False)
     upFingers = detector.getUpFingers(frame)
