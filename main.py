@@ -12,10 +12,12 @@ class ColorRect():
         self.h = h
         self.color = color
         self.text=text
+        self.alpha = 0.5
         
     
-    def drawRect(self, img, text_color=(255,255,255), alpha=0.5, fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.8, thickness=2):
+    def drawRect(self, img, text_color=(255,255,255), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.8, thickness=2):
         #draw the box
+        alpha = self.alpha
         bg_rec = img[self.y : self.y + self.h, self.x : self.x + self.w]
         white_rect = np.ones(bg_rec.shape, dtype=np.uint8)
         white_rect[:] = self.color
@@ -102,14 +104,23 @@ while True:
             for cb in colors:
                 if cb.isOver(x, y):
                     color = cb.color
+                    cb.alpha = 0
+                else:
+                    cb.alpha = 0.5
             #Clear 
             if clear.isOver(x, y):
+                clear.alpha = 0
                 canvas = np.zeros((720,1280,3), np.uint8)
+            else:
+                clear.alpha = 0.5
             
             ##### pen sizes ######
             for pen in pens:
                 if pen.isOver(x, y):
                     brushSize = int(pen.text)
+                    pen.alpha = 0
+                else:
+                    pen.alpha = 0.5
             
 
         elif upFingers[1] and not upFingers[2]:
@@ -139,6 +150,8 @@ while True:
 
     clear.drawRect(frame)
     cv2.rectangle(frame, (clear.x, clear.y), (clear.x +clear.w, clear.y+clear.h), (255,255,255), 2)
+
+
     ########## brush size boxes ######
     penLabel.color = color
     penLabel.drawRect(frame)
