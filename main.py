@@ -5,14 +5,14 @@ import numpy as np
 import random
 
 class ColorRect():
-    def __init__(self, x, y, w, h, color, text=''):
+    def __init__(self, x, y, w, h, color, text='', alpha = 0.5):
         self.x = x
         self.y = y
         self.w = w
         self.h = h
         self.color = color
         self.text=text
-        self.alpha = 0.5
+        self.alpha = alpha
         
     
     def drawRect(self, img, text_color=(255,255,255), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.8, thickness=2):
@@ -56,6 +56,7 @@ color = (255,0,0)
 brushSize = 5
 eraserSize = 20
 ####
+
 ########### creating colors ########
 colors = []
 #random color
@@ -84,6 +85,9 @@ for i, penSize in enumerate(range(5,25,5)):
     pens.append(ColorRect(1100,50+100*i,100,100, (50,50,50), str(penSize)))
 
 penLabel = ColorRect(1100, 0, 100, 50, color, 'Pen')
+
+#define a white board to draw on
+whiteBoard = ColorRect(50, 110, 1040, 600, (255,255,255),alpha = 0.6)
 
 
 while True:
@@ -123,7 +127,7 @@ while True:
                     pen.alpha = 0.5
             
 
-        elif upFingers[1] and not upFingers[2]:
+        elif upFingers[1] and not upFingers[2] and whiteBoard.isOver(x, y):
             #print('index finger is up')
             cv2.circle(frame, positions[8], brushSize, color,-1)
             #drawing on the canvas
@@ -134,7 +138,12 @@ while True:
             else:
                 cv2.line(canvas, (px,py), positions[8], color,brushSize)
             px, py = positions[8]
+        
+        else:
+            px, py = 0, 0
 
+    #put the white board on the frame        
+    whiteBoard.drawRect(frame)
     ########### moving the draw to the main image #########
     canvasGray = cv2.cvtColor(canvas, cv2.COLOR_BGR2GRAY)
     _, imgInv = cv2.threshold(canvasGray, 20, 255, cv2.THRESH_BINARY_INV)
