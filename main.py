@@ -60,7 +60,7 @@ eraserSize = 20
 
 ########### creating colors ########
 # Colors button
-colorsBtn = ColorRect(200, 0, 100, 100, (120,255,0), 'Colrs')
+colorsBtn = ColorRect(200, 0, 100, 100, (120,255,0), 'Colors')
 
 colors = []
 #random color
@@ -96,7 +96,7 @@ boardBtn = ColorRect(50, 0, 100, 100, (255,255,0), 'Board')
 #define a white board to draw on
 whiteBoard = ColorRect(50, 120, 1020, 580, (255,255,255),alpha = 0.6)
 
-coolingCounter = 15
+coolingCounter = 20
 hideBoard = True
 hideColors = True
 hidePenSizes = True
