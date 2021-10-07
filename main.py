@@ -86,11 +86,21 @@ for i, penSize in enumerate(range(5,25,5)):
 
 penLabel = ColorRect(1100, 0, 100, 50, color, 'Pen')
 
+# white board button
+boardBtn = ColorRect(50, 0, 100, 100, (255,255,0), 'Board')
+
 #define a white board to draw on
 whiteBoard = ColorRect(50, 110, 1040, 600, (255,255,255),alpha = 0.6)
 
+coolingCounter = 10
+hideBoard = True
 
 while True:
+
+    if coolingCounter:
+        coolingCounter -=1
+        print(coolingCounter)
+
     ret, frame = cap.read()
     if not ret:
         break
@@ -118,6 +128,15 @@ while True:
             else:
                 clear.alpha = 0.5
             
+            #white board button
+            if boardBtn.isOver(x, y) and not coolingCounter:
+                coolingCounter = 10
+                boardBtn.alpha = 0
+                hideBoard = False if hideBoard else True
+
+            else:
+                boardBtn.alpha = 0.5
+            
             ##### pen sizes ######
             for pen in pens:
                 if pen.isOver(x, y):
@@ -141,9 +160,13 @@ while True:
         
         else:
             px, py = 0, 0
+        
+    # put white board buttin
+    boardBtn.drawRect(frame)
 
-    #put the white board on the frame        
-    whiteBoard.drawRect(frame)
+    #put the white board on the frame
+    if not hideBoard:       
+        whiteBoard.drawRect(frame)
     ########### moving the draw to the main image #########
     canvasGray = cv2.cvtColor(canvas, cv2.COLOR_BGR2GRAY)
     _, imgInv = cv2.threshold(canvasGray, 20, 255, cv2.THRESH_BINARY_INV)
