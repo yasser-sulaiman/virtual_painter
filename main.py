@@ -31,6 +31,7 @@ class ColorRect():
         text_pos = (int(self.x + self.w/2 - tetx_size[0][0]/2), int(self.y + self.h/2 + tetx_size[0][1]/2))
         cv2.putText(img, self.text,text_pos , fontFace, fontScale,text_color, thickness)
 
+
     def isOver(self,x,y):
         if (self.x + self.w > x > self.x) and (self.y + self.h> y >self.y):
             return True
@@ -58,6 +59,9 @@ eraserSize = 20
 ####
 
 ########### creating colors ########
+# Colors button
+colorsBtn = ColorRect(200, 0, 100, 100, (120,255,0), 'Colrs')
+
 colors = []
 #random color
 b = int(random.random()*255)-1
@@ -84,22 +88,24 @@ pens = []
 for i, penSize in enumerate(range(5,25,5)):
     pens.append(ColorRect(1100,50+100*i,100,100, (50,50,50), str(penSize)))
 
-penLabel = ColorRect(1100, 0, 100, 50, color, 'Pen')
+penBtn = ColorRect(1100, 0, 100, 50, color, 'Pen')
 
 # white board button
 boardBtn = ColorRect(50, 0, 100, 100, (255,255,0), 'Board')
 
 #define a white board to draw on
-whiteBoard = ColorRect(50, 110, 1040, 600, (255,255,255),alpha = 0.6)
+whiteBoard = ColorRect(50, 120, 1020, 580, (255,255,255),alpha = 0.6)
 
-coolingCounter = 10
+coolingCounter = 15
 hideBoard = True
+hideColors = True
+hidePenSizes = True
 
 while True:
 
     if coolingCounter:
         coolingCounter -=1
-        print(coolingCounter)
+        #print(coolingCounter)
 
     ret, frame = cap.read()
     if not ret:
@@ -110,87 +116,122 @@ while True:
     detector.findHands(frame)
     positions = detector.getPostion(frame, draw=False)
     upFingers = detector.getUpFingers(frame)
+
     if upFingers:
         x, y = positions[8][0], positions[8][1]
-        if upFingers[1] and upFingers[2]:
+        if upFingers[1] and not whiteBoard.isOver(x, y):
             px, py = 0, 0
+
+            ##### pen sizes ######
+            if not hidePenSizes:
+                for pen in pens:
+                    if pen.isOver(x, y):
+                        brushSize = int(pen.text)
+                        pen.alpha = 0
+                    else:
+                        pen.alpha = 0.5
+
             ####### chose a color for drawing #######
-            for cb in colors:
-                if cb.isOver(x, y):
-                    color = cb.color
-                    cb.alpha = 0
+            if not hideColors:
+                for cb in colors:
+                    if cb.isOver(x, y):
+                        color = cb.color
+                        cb.alpha = 0
+                    else:
+                        cb.alpha = 0.5
+
+                #Clear 
+                if clear.isOver(x, y):
+                    clear.alpha = 0
+                    canvas = np.zeros((720,1280,3), np.uint8)
                 else:
-                    cb.alpha = 0.5
-            #Clear 
-            if clear.isOver(x, y):
-                clear.alpha = 0
-                canvas = np.zeros((720,1280,3), np.uint8)
+                    clear.alpha = 0.5
+            
+            # color button
+            if colorsBtn.isOver(x, y) and not coolingCounter:
+                coolingCounter = 10
+                colorsBtn.alpha = 0
+                hideColors = False if hideColors else True
+                colorsBtn.text = 'Colors' if hideColors else 'Hide'
             else:
-                clear.alpha = 0.5
+                colorsBtn.alpha = 0.5
+            
+            # Pen size button
+            if penBtn.isOver(x, y) and not coolingCounter:
+                coolingCounter = 10
+                penBtn.alpha = 0
+                hidePenSizes = False if hidePenSizes else True
+                penBtn.text = 'Pen' if hidePenSizes else 'Hide'
+            else:
+                penBtn.alpha = 0.5
+
             
             #white board button
             if boardBtn.isOver(x, y) and not coolingCounter:
                 coolingCounter = 10
                 boardBtn.alpha = 0
                 hideBoard = False if hideBoard else True
+                boardBtn.text = 'Board' if hideBoard else 'Hide'
 
             else:
                 boardBtn.alpha = 0.5
             
-            ##### pen sizes ######
-            for pen in pens:
-                if pen.isOver(x, y):
-                    brushSize = int(pen.text)
-                    pen.alpha = 0
-                else:
-                    pen.alpha = 0.5
+            
             
 
-        elif upFingers[1] and not upFingers[2] and whiteBoard.isOver(x, y):
-            #print('index finger is up')
-            cv2.circle(frame, positions[8], brushSize, color,-1)
-            #drawing on the canvas
-            if px == 0 and py == 0:
+        elif upFingers[1] and not upFingers[2]:
+            if whiteBoard.isOver(x, y) and not hideBoard:
+                #print('index finger is up')
+                cv2.circle(frame, positions[8], brushSize, color,-1)
+                #drawing on the canvas
+                if px == 0 and py == 0:
+                    px, py = positions[8]
+                if color == (0,0,0):
+                    cv2.line(canvas, (px,py), positions[8], color, eraserSize)
+                else:
+                    cv2.line(canvas, (px,py), positions[8], color,brushSize)
                 px, py = positions[8]
-            if color == (0,0,0):
-                cv2.line(canvas, (px,py), positions[8], color, eraserSize)
-            else:
-                cv2.line(canvas, (px,py), positions[8], color,brushSize)
-            px, py = positions[8]
         
         else:
             px, py = 0, 0
         
+    # put colors button
+    colorsBtn.drawRect(frame)
+    cv2.rectangle(frame, (colorsBtn.x, colorsBtn.y), (colorsBtn.x +colorsBtn.w, colorsBtn.y+colorsBtn.h), (255,255,255), 2)
+
     # put white board buttin
     boardBtn.drawRect(frame)
+    cv2.rectangle(frame, (boardBtn.x, boardBtn.y), (boardBtn.x +boardBtn.w, boardBtn.y+boardBtn.h), (255,255,255), 2)
 
     #put the white board on the frame
     if not hideBoard:       
         whiteBoard.drawRect(frame)
-    ########### moving the draw to the main image #########
-    canvasGray = cv2.cvtColor(canvas, cv2.COLOR_BGR2GRAY)
-    _, imgInv = cv2.threshold(canvasGray, 20, 255, cv2.THRESH_BINARY_INV)
-    imgInv = cv2.cvtColor(imgInv, cv2.COLOR_GRAY2BGR)
-    frame = cv2.bitwise_and(frame, imgInv)
-    frame = cv2.bitwise_or(frame, canvas)
+        ########### moving the draw to the main image #########
+        canvasGray = cv2.cvtColor(canvas, cv2.COLOR_BGR2GRAY)
+        _, imgInv = cv2.threshold(canvasGray, 20, 255, cv2.THRESH_BINARY_INV)
+        imgInv = cv2.cvtColor(imgInv, cv2.COLOR_GRAY2BGR)
+        frame = cv2.bitwise_and(frame, imgInv)
+        frame = cv2.bitwise_or(frame, canvas)
 
 
     ########## pen colors' boxes #########
-    for c in colors:
-        c.drawRect(frame)
-        cv2.rectangle(frame, (c.x, c.y), (c.x +c.w, c.y+c.h), (255,255,255), 2)
+    if not hideColors:
+        for c in colors:
+            c.drawRect(frame)
+            cv2.rectangle(frame, (c.x, c.y), (c.x +c.w, c.y+c.h), (255,255,255), 2)
 
-    clear.drawRect(frame)
-    cv2.rectangle(frame, (clear.x, clear.y), (clear.x +clear.w, clear.y+clear.h), (255,255,255), 2)
+        clear.drawRect(frame)
+        cv2.rectangle(frame, (clear.x, clear.y), (clear.x +clear.w, clear.y+clear.h), (255,255,255), 2)
 
 
     ########## brush size boxes ######
-    penLabel.color = color
-    penLabel.drawRect(frame)
-    cv2.rectangle(frame, (penLabel.x, penLabel.y), (penLabel.x +penLabel.w, penLabel.y+penLabel.h), (255,255,255), 2)
-    for pen in pens:
-        pen.drawRect(frame)
-        cv2.rectangle(frame, (pen.x, pen.y), (pen.x +pen.w, pen.y+pen.h), (255,255,255), 2)
+    penBtn.color = color
+    penBtn.drawRect(frame)
+    cv2.rectangle(frame, (penBtn.x, penBtn.y), (penBtn.x +penBtn.w, penBtn.y+penBtn.h), (255,255,255), 2)
+    if not hidePenSizes:
+        for pen in pens:
+            pen.drawRect(frame)
+            cv2.rectangle(frame, (pen.x, pen.y), (pen.x +pen.w, pen.y+pen.h), (255,255,255), 2)
 
 
     cv2.imshow('video', frame)
