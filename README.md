@@ -6,7 +6,7 @@ The main idea is:
 * detect fingers' tip location
 * draw a line when only the index finger is up and make a sellection when both index and middle fingers are up
 * draw on a black canvas then mask it with actual frame   
-to watch the demo of the program press [here](https://youtu.be/unW7xfYYom4)
+to watch the demo of the program press [here](https://youtu.be/ZNPu2nwcXX4)
 
 
 # Installation
